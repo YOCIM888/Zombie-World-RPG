@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图鉴百科 — 丧尸世界</title>
+  <link rel="icon" href="../public/icon/icon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+      background: #0a0a0f;
+      color: #e2e2ee;
+      min-height: 100vh;
+    }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 200px; background: #111119; border-right: 1px solid #1e1e2e;
+      padding: 20px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-title {
+      padding: 0 16px 16px; font-size: 14px; font-weight: 700; color: #6a6a8e;
+      letter-spacing: 2px; border-bottom: 1px solid #1e1e2e; margin-bottom: 8px;
+    }
+    .sidebar-title span { color: #c0392b; }
+    .nav-item {
+      padding: 9px 16px; cursor: pointer; font-size: 13px; color: #9898b0;
+      transition: all 0.2s; border-left: 3px solid transparent; display: flex; align-items: center; gap: 6px;
+    }
+    .nav-item:hover { background: #181825; color: #e2e2ee; }
+    .nav-item.active { background: #181825; color: #fff; border-left-color: #c0392b; }
+    .nav-item .badge {
+      margin-left: auto; background: #1e1e2e; color: #6a6a8e; font-size: 10px; padding: 1px 7px; border-radius: 10px;
+    }
+    .main { flex: 1; padding: 24px 32px; max-width: 1200px; }
+    .page-header { margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid #1e1e2e; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: #6a6a8e; margin-top: 4px; }
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input {
+      width: 100%; padding: 10px 16px; background: #111119; border: 1px solid #1e1e2e;
+      border-radius: 6px; color: #e2e2ee; font-size: 14px; outline: none;
+    }
+    .search-bar input:focus { border-color: #c0392b; }
+    .search-bar input::placeholder { color: #4a4a6a; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .category-title {
+      font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #fff;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sub-category-title {
+      font-size: 14px; font-weight: 600; margin: 20px 0 10px; color: #c8c8da;
+      padding-bottom: 6px; border-bottom: 1px solid #1a1a28;
+    }
+    .card-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px; margin-bottom: 20px;
+    }
+    .card {
+      background: #111119; border: 1px solid #1a1a28; border-radius: 8px;
+      padding: 14px 16px; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .card:hover { border-color: #2a2a3e; background: #14141e; }
+    .card-name {
+      font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-rarity {
+      display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 8px;
+      border-radius: 3px; letter-spacing: 0.5px;
+    }
+    .r-common { background: #1a2e1a; color: #7dcea0; }
+    .r-uncommon { background: #1a2a3e; color: #5dade2; }
+    .r-rare { background: #2a1a3e; color: #a569bd; }
+    .r-epic { background: #3e1a1a; color: #e74c3c; }
+    .r-legendary { background: #3e2a0a; color: #f39c12; }
+    .r-none { background: #1e1e2e; color: #6a6a8e; }
+
+    .card-stats {
+      font-size: 12px; color: #9898b0; margin-bottom: 4px; line-height: 1.6;
+    }
+    .card-stats .stat-label { color: #6a6a8e; }
+    .card-stats .stat-val { color: #e8c547; }
+    .card-desc {
+      font-size: 12px; color: #6a6a8e; line-height: 1.5;
+    }
+    .card-desc::before { content: "「"; color: #4a4a6a; }
+    .card-desc::after { content: "」"; color: #4a4a6a; }
+
+    .loading {
+      text-align: center; padding: 80px 20px; color: #4a4a6a;
+    }
+    .loading .spinner {
+      display: inline-block; width: 32px; height: 32px; border: 3px solid #1e1e2e;
+      border-top-color: #c0392b; border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { font-size: 14px; }
+    .error { text-align: center; padding: 60px; color: #e74c3c; font-size: 14px; }
+    .error .icon { font-size: 40px; margin-bottom: 12px; }
+    .row-count { color: #4a4a6a; font-size: 12px; margin-bottom: 8px; }
+    .no-result { text-align: center; padding: 40px; color: #4a4a6a; font-size: 14px; }
+
+    @media (max-width: 768px) {
+      .app { flex-direction: column; }
+      .sidebar {
+        width: 100%; height: auto; position: static; display: flex; flex-wrap: wrap;
+        padding: 8px; gap: 4px; border-right: none; border-bottom: 1px solid #1e1e2e;
+      }
+      .sidebar-title { width: 100%; padding: 0 8px 10px; margin-bottom: 4px; }
+      .nav-item {
+        flex: 0 0 auto; min-width: auto; text-align: center; border-left: none;
+        border-bottom: 2px solid transparent; padding: 6px 10px; font-size: 12px;
+        border-radius: 4px; background: #14141e;
+      }
+      .nav-item:hover { background: #1a1a2e; }
+      .nav-item.active { border-left: none; border-bottom-color: #c0392b; background: #1a1a2e; }
+      .nav-item .badge { display: none; }
+      .main { padding: 12px; max-width: 100%; }
+      .page-header h1 { font-size: 18px; }
+      .page-header p { font-size: 11px; }
+      .card-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+      .card { padding: 10px 12px; }
+      .card-name { font-size: 14px; }
+      .category-title { font-size: 16px; }
+    }
+    @media (max-width: 480px) {
+      .sidebar { padding: 6px; gap: 3px; }
+      .nav-item { padding: 5px 8px; font-size: 11px; }
+      .main { padding: 8px; }
+      .page-header h1 { font-size: 16px; }
+      .card-grid { grid-template-columns: 1fr; gap: 6px; }
+      .card { padding: 8px 10px; }
+      .card-name { font-size: 13px; flex-wrap: wrap; }
+      .card-stats { font-size: 11px; }
+      .card-desc { font-size: 11px; }
+      .category-title { font-size: 14px; }
+      .sub-category-title { font-size: 12px; }
+      .search-bar input { font-size: 13px; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-title"><span>☠</span> 图鉴百科</div>
+  </nav>
+  <div class="main" id="main-content">
+    <div class="page-header">
+      <h1>📖 图鉴百科</h1>
+      <p>丧尸世界 · 全物品/角色/怪物图鉴 · 数据版本 V0.2.2 · 数据来源 <strong>tools_data/encyclopedia_data.csv</strong></p>
+    </div>
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="搜索名称、描述、属性..."></div>
+    <div id="tab-container"></div>
+  </div>
+</div>
+<script>
+const RARITY_CLASS = {
+  'common': 'r-common', 'uncommon': 'r-uncommon', 'rare': 'r-rare',
+  'epic': 'r-epic', 'legendary': 'r-legendary'
+};
+const RARITY_LABEL = {
+  'common': '普通', 'uncommon': '优秀', 'rare': '稀有',
+  'epic': '史诗', 'legendary': '传奇'
+};
+
+const CATEGORY_ICON = {
+  '近战武器': '⚔', '远程武器': '🏹', '弹药': '🔫',
+  '食物': '🥘', '水果': '🍎', '饮品': '💧', '药品': '💊',
+  '背包': '🎒', '作物': '🌾', '鱼类': '🐟', '建材': '🧱',
+  '特殊物品': '📦', '酒吧饮品': '🍹',
+  '丧尸': '🧟', 'BOSS': '👑', 'NPC': '👤'
+};
+
+const CATEGORY_ORDER = [
+  '近战武器', '远程武器', '弹药', '食物', '水果', '饮品', '药品',
+  '背包', '作物', '鱼类', '建材', '特殊物品', '酒吧饮品',
+  '丧尸', 'BOSS', 'NPC'
+];
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const rows = [];
+  for (const line of lines) {
+    const cells = []; let cur = ''; let inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+    cells.push(cur);
+    rows.push(cells);
+  }
+  return rows;
+}
+
+function groupBy(rows, colIdx) {
+  const map = {};
+  for (const row of rows) {
+    const key = row[colIdx];
+    if (!map[key]) map[key] = [];
+    map[key].push(row);
+  }
+  return map;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function buildRarityTag(rarity) {
+  if (!rarity || rarity === '') return '';
+  const cls = RARITY_CLASS[rarity] || 'r-none';
+  const label = RARITY_LABEL[rarity] || rarity;
+  return `<span class="card-rarity ${cls}">${label}</span>`;
+}
+
+function buildCard(item) {
+  const name = item[2], id = item[3], rarity = item[4], stats = item[5], desc = item[6];
+  return `<div class="card" data-name="${esc(name)}" data-desc="${esc(desc)}" data-stats="${esc(stats)}">
+    <div class="card-name">${esc(name)} ${buildRarityTag(rarity)}</div>
+    <div class="card-stats">${stats ? formatStats(esc(stats)) : ''}</div>
+    <div class="card-desc">${desc ? esc(desc) : ''}</div>
+  </div>`;
+}
+
+function formatStats(stats) {
+  return stats.replace(/([^ ]+):([^ ]*)/g, '<span class="stat-label">$1</span><span class="stat-val">$2</span> ');
+}
+
+function renderCategory(data, category, container) {
+  const items = data[category] || [];
+  const subGroups = groupBy(items, 1);
+  const icon = CATEGORY_ICON[category] || '📋';
+  let html = `<div class="category-title">${icon} ${category}</div><p class="row-count">共 ${items.length} 项</p>`;
+
+  for (const [sub, subItems] of Object.entries(subGroups)) {
+    if (sub && sub !== category) {
+      html += `<div class="sub-category-title">${sub}</div>`;
+    }
+    html += `<div class="card-grid">`;
+    for (const item of subItems) {
+      html += buildCard(item);
+    }
+    html += `</div>`;
+  }
+  return html;
+}
+
+async function loadData() {
+  const res = await fetch('tools_data/encyclopedia_data.csv');
+  if (!res.ok) throw new Error('加载失败: ' + res.status);
+  const text = await res.text();
+  const all = parseCSV(text);
+  const header = all[0];
+  const data = all.slice(1).filter(r => r.length > 1 && r[0].trim());
+  return groupBy(data, 0);
+}
+
+function renderAll(data, container) {
+  container.innerHTML = '';
+  for (const cat of CATEGORY_ORDER) {
+    if (!data[cat]) continue;
+    const tab = document.createElement('div');
+    tab.className = 'tab-content' + (cat === '近战武器' ? ' active' : '');
+    tab.id = 'tab-' + cat;
+    tab.innerHTML = renderCategory(data, cat, container);
+    container.appendChild(tab);
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const tab = document.getElementById('tab-' + item.dataset.tab);
+      if (tab) tab.classList.add('active');
+    });
+  });
+
+  document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.card-grid').forEach(grid => {
+      const cards = grid.querySelectorAll('.card');
+      let visible = 0;
+      cards.forEach(card => {
+        const text = (card.dataset.name + ' ' + card.dataset.desc + ' ' + card.dataset.stats).toLowerCase();
+        if (!q || text.includes(q)) { card.style.display = ''; visible++; }
+        else { card.style.display = 'none'; }
+      });
+      const subTitle = grid.previousElementSibling;
+      if (subTitle && subTitle.classList.contains('sub-category-title')) {
+        subTitle.style.display = visible > 0 ? '' : 'none';
+      }
+    });
+    document.querySelectorAll('.category-title').forEach(title => {
+      const grid = title.parentElement.querySelectorAll('.card-grid');
+      let hasAny = false;
+      grid.forEach(g => {
+        if (g.querySelector('.card[style=""') || g.querySelector('.card:not([style*="display"])')) hasAny = true;
+        if (g.querySelector('.card') && !g.querySelector('.card[style*="display: none"]')) hasAny = true;
+      });
+    });
+  });
+}
+
+async function init() {
+  try {
+    const container = document.getElementById('tab-container');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在加载百科数据...</p></div>';
+
+    const sidebar = document.getElementById('sidebar');
+
+    const data = await loadData();
+
+    container.innerHTML = '';
+    let sidebarHtml = '';
+    for (const cat of CATEGORY_ORDER) {
+      if (!data[cat]) continue;
+      const count = data[cat].length;
+      sidebarHtml += `<div class="nav-item${cat === '近战武器' ? ' active' : ''}" data-tab="${cat}">${CATEGORY_ICON[cat] || '📋'} ${cat} <span class="badge">${count}</span></div>`;
+    }
+    sidebar.insertAdjacentHTML('beforeend', sidebarHtml);
+
+    renderAll(data, container);
+  } catch (err) {
+    document.getElementById('tab-container').innerHTML =
+      '<div class="error"><div class="icon">⚠</div><p>加载百科数据失败</p><p style="color:#6a6a8e;font-size:13px;margin-top:8px">' + err.message + '</p></div>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

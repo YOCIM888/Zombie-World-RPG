@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>概率查询 — 丧尸世界</title>
+  <link rel="icon" href="../public/icon/icon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+      background: #0a0a0f;
+      color: #e2e2ee;
+      min-height: 100vh;
+    }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px; background: #111119; border-right: 1px solid #1e1e2e;
+      padding: 20px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-title {
+      padding: 0 20px 16px; font-size: 14px; font-weight: 700; color: #6a6a8e;
+      letter-spacing: 2px; border-bottom: 1px solid #1e1e2e; margin-bottom: 8px;
+    }
+    .sidebar-title span { color: #c0392b; }
+    .nav-item {
+      padding: 10px 20px; cursor: pointer; font-size: 14px; color: #9898b0;
+      transition: all 0.2s; border-left: 3px solid transparent;
+    }
+    .nav-item:hover { background: #181825; color: #e2e2ee; }
+    .nav-item.active { background: #181825; color: #fff; border-left-color: #c0392b; }
+    .nav-item .badge {
+      float: right; background: #1e1e2e; color: #6a6a8e; font-size: 11px; padding: 1px 8px; border-radius: 10px;
+    }
+    .main { flex: 1; padding: 30px 40px; max-width: 1100px; }
+    .page-header { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid #1e1e2e; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: #6a6a8e; margin-top: 4px; }
+    .search-bar { margin-bottom: 20px; }
+    .search-bar input {
+      width: 100%; padding: 10px 16px; background: #111119; border: 1px solid #1e1e2e;
+      border-radius: 6px; color: #e2e2ee; font-size: 14px; outline: none;
+    }
+    .search-bar input:focus { border-color: #c0392b; }
+    .search-bar input::placeholder { color: #4a4a6a; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px;
+    }
+    th {
+      background: #111119; color: #6a6a8e; font-weight: 600; padding: 10px 12px;
+      text-align: left; border-bottom: 2px solid #1e1e2e; font-size: 12px;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid #16161f; }
+    tr:hover td { background: #14141e; }
+    .num { text-align: center; font-family: 'JetBrains Mono', monospace; }
+    .pct { color: #e8c547; font-weight: 600; }
+    .pct-high { color: #e74c3c; font-weight: 700; }
+    .pct-low { color: #6a6a8e; }
+    .pct-mid { color: #e8c547; }
+    .pct-safe { color: #27ae60; }
+    .tag {
+      display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;
+    }
+    .tag-safe { background: #1a2e1a; color: #27ae60; }
+    .tag-easy { background: #1a2e2a; color: #2ecc71; }
+    .tag-low { background: #1a2a2e; color: #3498db; }
+    .tag-mid { background: #2e2a1a; color: #f39c12; }
+    .tag-high { background: #2e1a1a; color: #e74c3c; }
+    .tag-deadly { background: #2e1a2e; color: #9b59b6; }
+    .tag-hell { background: #2e0a0a; color: #ff4444; }
+    .sub-table { margin-left: 20px; }
+    .info-box {
+      background: #111119; border-left: 3px solid #c0392b; padding: 12px 16px;
+      border-radius: 4px; font-size: 13px; color: #9898b0; margin-bottom: 16px; line-height: 1.6;
+    }
+    .info-box strong { color: #e2e2ee; }
+    h2 { font-size: 16px; margin-bottom: 12px; color: #fff; }
+    h3 { font-size: 14px; margin: 16px 0 8px; color: #c8c8da; }
+    .section { margin-bottom: 32px; }
+    .row-count { color: #4a4a6a; font-size: 12px; margin-bottom: 8px; }
+    .loading {
+      text-align: center; padding: 80px 20px; color: #4a4a6a;
+    }
+    .loading .spinner {
+      display: inline-block; width: 32px; height: 32px; border: 3px solid #1e1e2e;
+      border-top-color: #c0392b; border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading p { font-size: 14px; }
+    .error { text-align: center; padding: 60px; color: #e74c3c; font-size: 14px; }
+    .error .icon { font-size: 40px; margin-bottom: 12px; }
+    @media (max-width: 768px) {
+      .app { flex-direction: column; }
+      .sidebar {
+        width: 100%; height: auto; position: static; display: flex; flex-wrap: wrap;
+        padding: 8px; gap: 4px; border-right: none; border-bottom: 1px solid #1e1e2e;
+      }
+      .sidebar-title { width: 100%; padding: 0 8px 10px; margin-bottom: 4px; }
+      .nav-item {
+        flex: 0 0 auto; min-width: auto; text-align: center; border-left: none;
+        border-bottom: 2px solid transparent; padding: 6px 10px; font-size: 12px;
+        border-radius: 4px; background: #14141e;
+      }
+      .nav-item:hover { background: #1a1a2e; }
+      .nav-item.active { border-left: none; border-bottom-color: #c0392b; background: #1a1a2e; }
+      .nav-item .badge { display: none; }
+      .main { padding: 12px; max-width: 100%; }
+      .page-header h1 { font-size: 18px; }
+      .page-header p { font-size: 11px; }
+      table { font-size: 11px; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      th, td { padding: 6px 8px; }
+      h2 { font-size: 14px; }
+      h3 { font-size: 13px; }
+      .info-box { font-size: 12px; padding: 10px 12px; }
+      .sub-table { margin-left: 0; }
+    }
+    @media (max-width: 480px) {
+      .sidebar { padding: 6px; gap: 3px; }
+      .nav-item { padding: 5px 8px; font-size: 11px; }
+      .main { padding: 8px; }
+      .page-header h1 { font-size: 16px; }
+      .page-header p { font-size: 10px; }
+      table { font-size: 10px; }
+      th, td { padding: 4px 6px; white-space: nowrap; }
+      h2 { font-size: 13px; }
+      h3 { font-size: 12px; }
+      .info-box { font-size: 11px; padding: 8px 10px; }
+      .search-bar input { font-size: 13px; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-title"><span>☠</span> 概率查询</div>
+    <div class="nav-item active" data-tab="quality">品质掉落率 <span class="badge" id="b-quality">0</span></div>
+    <div class="nav-item" data-tab="maps">地图掉落率 <span class="badge" id="b-maps">0</span></div>
+    <div class="nav-item" data-tab="combat">战斗概率 <span class="badge" id="b-combat">0</span></div>
+    <div class="nav-item" data-tab="drops">击杀掉落 <span class="badge" id="b-drops">0</span></div>
+    <div class="nav-item" data-tab="ammo">弹药掉落 <span class="badge" id="b-ammo">0</span></div>
+    <div class="nav-item" data-tab="npc">NPC遭遇 <span class="badge" id="b-npc">0</span></div>
+    <div class="nav-item" data-tab="events">地图事件 <span class="badge" id="b-events">0</span></div>
+    <div class="nav-item" data-tab="weather">天气概率 <span class="badge" id="b-weather">0</span></div>
+    <div class="nav-item" data-tab="invest">岛屿投资 <span class="badge" id="b-invest">0</span></div>
+    <div class="nav-item" data-tab="other">其他概率 <span class="badge" id="b-other">0</span></div>
+  </nav>
+  <div class="main" id="main-content">
+    <div class="page-header">
+      <h1>📊 概率查询工具</h1>
+      <p>丧尸世界 · 全游戏概率数据一览 · 数据版本 V0.2.2 · 数据来源 <strong>tools_data/probability_data.csv</strong></p>
+    </div>
+    <div class="search-bar"><input type="text" id="searchInput" placeholder="搜索表格内容..."></div>
+    <div id="tab-container"></div>
+  </div>
+</div>
+<script>
+const DANGER_CLASSES = {
+  '☆': 'tag-safe', '★轻松': 'tag-easy', '★★低危': 'tag-low',
+  '★★★中危': 'tag-mid', '★★★★高危': 'tag-high',
+  '★★★★★绝境': 'tag-deadly', '★★★★★★炼狱': 'tag-hell'
+};
+function dangerClass(d) {
+  for (const [k, v] of Object.entries(DANGER_CLASSES)) { if (d.startsWith(k)) return v; }
+  return 'tag-easy';
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const rows = [];
+  for (const line of lines) {
+    const cells = []; let cur = ''; let inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+    cells.push(cur);
+    rows.push(cells);
+  }
+  return rows;
+}
+
+function groupBy(rows, colIdx) {
+  const map = {};
+  for (const row of rows) {
+    const key = row[colIdx];
+    if (!map[key]) map[key] = [];
+    map[key].push(row);
+  }
+  return map;
+}
+
+async function loadData() {
+  const res = await fetch('tools_data/probability_data.csv');
+  if (!res.ok) throw new Error('加载失败: ' + res.status);
+  const text = await res.text();
+  const all = parseCSV(text);
+  const header = all[0];
+  const data = all.slice(1).filter(r => r.length > 1 && r[0].trim());
+  return groupBy(data, 0);
+}
+
+function renderTab(id, html) {
+  const tab = document.getElementById('tab-' + id);
+  if (tab) tab.innerHTML = html;
+}
+
+function renderAll(data) {
+  // Sidebar badges
+  for (const [section, rows] of Object.entries(data)) {
+    const badge = document.getElementById('b-' + section.replace(/_.+$/, ''));
+    if (badge) badge.textContent = rows.length;
+  }
+
+  // Quality
+  const qRows = data['quality'] || [];
+  const qGroups = groupBy(qRows, 1);
+  let qHtml = `<h2>📦 品质掉落率（稀有度权重）</h2><div class="info-box"><strong>说明：</strong>探索掉落物品时，先按上图权重决定品质。药品、背包、近战武器、远程武器均使用此权重。<br><strong>钓鱼</strong>使用独立权重（普通 60%、优秀 24%、稀有 12%、史诗 3.5%、传奇 0.5%）。</div><div class="sub-table">`;
+  for (const [label, items] of Object.entries(qGroups)) {
+    const isHeader = items.length === 1 && items[0][3] === '权重';
+    if (isHeader) continue;
+    const hRow = qGroups[label].find(r => r[3] === '权重');
+    qHtml += `<h3>${label}</h3><table><thead><tr><th>品质</th><th class="num">权重</th><th class="num">概率</th><th class="num">累计</th></tr></thead><tbody>`;
+    let acc = 0;
+    for (const r of items) {
+      if (r[3] === '权重') continue;
+      const pct = r[4];
+      acc += parseFloat(pct);
+      const css = r[6] || 'pct-low';
+      qHtml += `<tr><td>${r[2]}</td><td class="num">${r[3]}</td><td class="num ${css}">${pct}</td><td class="num pct-low">${acc.toFixed(2)}%</td></tr>`;
+    }
+    qHtml += '</tbody></table>';
+  }
+  qHtml += '</div>';
+  renderTab('quality', qHtml);
+
+  // Maps
+  const mapsRows = data['maps'] || [];
+  let mHtml = `<h2>🗺️ 地图遇敌率 &amp; 掉落权重</h2><div class="info-box"><strong>流程：</strong>探索时先判定 <strong>遇敌率</strong>（遇敌才进战斗）→ 再按战利品表权重随机出物品种类 → 最后按品质权重决定具体物品。<br><strong>empty列：</strong>空手而归的概率。没有 empty 则探索必定有收获。</div>
+  <table><thead><tr><th>地图</th><th>危险等级</th><th class="num">遇敌率</th><th class="num">🥘食物</th><th class="num">💧饮品</th><th class="num">🍎水果</th><th class="num">💊药品</th><th class="num">🔫弹药</th><th class="num">🎒背包</th><th class="num">⚔近战</th><th class="num">🎯远程</th><th class="num">🚬香烟</th><th class="num">🧱建材</th><th class="num">空手</th></tr></thead><tbody>`;
+  for (const r of mapsRows) {
+    const d = r[2], rate = r[3];
+    mHtml += `<tr><td>${r[1]}</td><td><span class="tag ${dangerClass(d)}">${d}</span></td><td class="num ${rate !== '0%' ? 'pct' : 'pct-low'}">${rate}</td>`;
+    for (let i = 4; i <= 14; i++) mHtml += `<td class="num">${r[i] || '—'}</td>`;
+    mHtml += '</tr>';
+  }
+  mHtml += '</tbody></table><p class="row-count">显示 ' + mapsRows.length + ' 条</p>';
+  renderTab('maps', mHtml);
+
+  // Combat dodge
+  const dodge = data['combat_dodge'] || [];
+  const params = data['combat_params'] || [];
+  const special = data['combat_special'] || [];
+  const crit = data['crit_ranged'] || [];
+  const combo = data['combo_melee'] || [];
+
+  let cHtml = `<h2>⚔ 僵尸闪避率</h2>
+  <table><thead><tr><th>僵尸/BOSS</th><th class="num">闪避率</th><th>备注</th></tr></thead>
+  <tbody>${dodge.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td>${r[3] || ''}</td></tr>`).join('')}</tbody></table>
+  <p class="row-count">显示 ${dodge.length} 条</p>
+  <h3>⚙ 战斗基础参数</h3>
+  <table><thead><tr><th>参数</th><th class="num">值</th></tr></thead>
+  <tbody>${params.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>
+  <h3>🧟 僵尸特殊能力触发率</h3>
+  <table><thead><tr><th>能力</th><th class="num">触发率</th><th>效果</th></tr></thead>
+  <tbody>${special.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td>${r[3] || ''}</td></tr>`).join('')}</tbody></table>
+  <h2>🏹 远程武器暴击率</h2>
+  <table><thead><tr><th>武器</th><th class="num">暴击率</th><th>稀有度</th></tr></thead>
+  <tbody>${crit.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td>${r[3] || ''}</td></tr>`).join('')}</tbody></table>
+  <p class="row-count">显示 ${crit.length} 条</p>
+  <h2>🔪 近战武器连击率</h2>
+  <table><thead><tr><th>武器范围</th><th class="num">连击率</th></tr></thead>
+  <tbody>${combo.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>
+  <p class="row-count">显示 ${combo.length} 条</p>`;
+  renderTab('combat', cHtml);
+
+  // Drops
+  const dz = data['drops_zombie'] || [];
+  const dn = data['drops_npc'] || [];
+  const dnr = data['drops_npc_ranged'] || [];
+  let dHtml = `
+    <h2>🧟 丧尸击杀掉落</h2>
+    <table><thead><tr><th>项目</th><th class="num">概率</th></tr></thead>
+    <tbody>${dz.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>
+    <h2>👤 NPC击杀掉落</h2>
+    <table><thead><tr><th>项目</th><th class="num">概率/范围</th></tr></thead>
+    <tbody>${dn.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>
+    <h2>🔫 NPC携带远程武器概率</h2>
+    <table><thead><tr><th>NPC类型</th><th class="num">概率</th></tr></thead>
+    <tbody>${dnr.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>`;
+  renderTab('drops', dHtml);
+
+  // Ammo
+  const ammo = data['ammo'] || [];
+  let aHtml = `<h2>🏹 箭矢出现率（按地图危险度）</h2>
+  <table><thead><tr><th>地图等级</th><th class="num">出箭矢概率</th><th>类型</th><th class="num">数量范围</th></tr></thead>
+  <tbody>${ammo.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td>${r[3]}</td><td class="num">${r[4]}</td></tr>`).join('')}</tbody></table>`;
+  renderTab('ammo', aHtml);
+
+  // NPC
+  const npc = data['npc_encounter'] || [];
+  let nHtml = `<h2>👥 探索时NPC遭遇概率</h2>
+  <div class="info-box"><strong>说明：</strong>每次探索（非安全地图）有 10% 概率遭遇NPC而非丧尸。遭遇NPC后的类型分布如下：</div>
+  <table><thead><tr><th>NPC类型</th><th class="num">概率</th></tr></thead>
+  <tbody>${npc.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>`;
+  renderTab('npc', nHtml);
+
+  // Events
+  const ev = data['events'] || [];
+  let eHtml = `<h2>🗺️ 地图特殊事件概率</h2>
+  <table><thead><tr><th>地图</th><th>事件</th><th class="num">触发概率</th><th>触发时机</th></tr></thead>
+  <tbody>${ev.map(r => `<tr><td>${r[1]}</td><td>${r[2]}</td><td class="num pct">${r[3]}</td><td>${r[4] || ''}</td></tr>`).join('')}</tbody></table>
+  <p class="row-count">显示 ${ev.length} 条</p>`;
+  renderTab('events', eHtml);
+
+  // Weather
+  const w = data['weather'] || [];
+  let wHtml = `<h2>🌤 每日天气概率</h2>
+  <table><thead><tr><th>天气</th><th class="num">概率</th><th class="num">累计</th></tr></thead>
+  <tbody>${w.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td class="num pct-low">${r[3] || ''}</td></tr>`).join('')}</tbody></table>`;
+  renderTab('weather', wHtml);
+
+  // Invest
+  const inv = data['invest'] || [];
+  const invGroups = groupBy(inv, 1);
+  let iHtml = `<h2>🏦 岛屿投资概率（卢修斯投资行）</h2>`;
+  for (const [label, items] of Object.entries(invGroups)) {
+    iHtml += `<h3>${label}</h3><table><thead><tr><th>结果</th><th class="num">概率</th><th class="num">回报率</th></tr></thead><tbody>`;
+    for (const r of items) {
+      const ret = r[4];
+      const cls = ret.startsWith('+') ? 'pct-safe' : ret === '0%' ? 'pct-low' : 'pct-high';
+      iHtml += `<tr><td>${r[2]}</td><td class="num pct">${r[3]}</td><td class="num ${cls}">${ret}</td></tr>`;
+    }
+    iHtml += '</tbody></table>';
+  }
+  renderTab('invest', iHtml);
+
+  // Other
+  const o = data['other'] || [];
+  const sleepCrash = o.filter(r => r[1].includes('疲惫'));
+  const sleepHp = o.filter(r => r[1].includes('生命'));
+  const affinity = o.filter(r => r[1].includes('好感') || r[1].includes('露露薇') || r[1].includes('沐苗苗'));
+  const rest = o.filter(r => !r[1].includes('疲惫') && !r[1].includes('生命') && !r[1].includes('好感') && !r[1].includes('露露薇') && !r[1].includes('沐苗苗'));
+  let oHtml = `
+    <h2>💤 睡眠恢复范围</h2>
+    <table><thead><tr><th>属性</th><th class="num">最小</th><th class="num">最大</th><th class="num">平均</th></tr></thead>
+    <tbody>
+      <tr><td>疲惫恢复</td><td class="num">${sleepCrash[0] ? sleepCrash[0][2].split('~')[0] : '10'}</td><td class="num">${sleepCrash[0] ? sleepCrash[0][2].split('~')[1] : '25'}</td><td class="num pct-low">${sleepCrash[0] ? ((parseInt(sleepCrash[0][2].split('~')[0]) + parseInt(sleepCrash[0][2].split('~')[1])) / 2).toFixed(1) : '17.5'}</td></tr>
+      <tr><td>生命恢复</td><td class="num">${sleepHp[0] ? sleepHp[0][2].split('~')[0] : '20'}</td><td class="num">${sleepHp[0] ? sleepHp[0][2].split('~')[1] : '40'}</td><td class="num pct-low">${sleepHp[0] ? ((parseInt(sleepHp[0][2].split('~')[0]) + parseInt(sleepHp[0][2].split('~')[1])) / 2).toFixed(1) : '30'}</td></tr>
+    </tbody></table>
+    <h2>❤️ 好感度随机范围</h2>
+    <table><thead><tr><th>NPC</th><th>行为</th><th class="num">好感变化</th></tr></thead>
+    <tbody>${affinity.map(r => `<tr><td>${r[3] || r[1].replace(/好感.*/, '')}</td><td>${r[1].includes('露露薇') ? '喂罐头' : r[1].includes('沐苗苗') ? '照料田地' : r[1]}</td><td class="num pct">${r[2]}</td></tr>`).join('')}</tbody></table>
+    <h2>📦 其他随机范围</h2>
+    <table><thead><tr><th>项目</th><th class="num">范围</th><th>说明</th></tr></thead>
+    <tbody>${rest.map(r => `<tr><td>${r[1]}</td><td class="num pct">${r[2]}</td><td>${r[3] || ''}</td></tr>`).join('')}</tbody></table>`;
+  renderTab('other', oHtml);
+}
+
+async function init() {
+  try {
+    const container = document.getElementById('tab-container');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在加载概率数据...</p></div>';
+
+    const tabHtml = [
+      'quality', 'maps', 'combat', 'drops', 'ammo', 'npc',
+      'events', 'weather', 'invest', 'other'
+    ].map(id => `<div class="tab-content${id === 'quality' ? ' active' : ''}" id="tab-${id}"><div class="section"></div></div>`).join('');
+    container.innerHTML = tabHtml;
+
+    const data = await loadData();
+
+    renderAll(data);
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        const tab = document.getElementById('tab-' + item.dataset.tab);
+        if (tab) tab.classList.add('active');
+      });
+    });
+
+    document.getElementById('searchInput').addEventListener('input', function() {
+      const q = this.value.trim().toLowerCase();
+      document.querySelectorAll('table').forEach(table => {
+        const rows = table.querySelectorAll('tbody tr');
+        let visible = 0;
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          if (!q || text.includes(q)) { row.style.display = ''; visible++; }
+          else { row.style.display = 'none'; }
+        });
+        const parent = table.closest('.section') || table.parentElement;
+        const counter = parent.querySelector('.row-count');
+        if (counter) counter.textContent = '显示 ' + visible + ' 条';
+      });
+    });
+  } catch (err) {
+    document.getElementById('tab-container').innerHTML =
+      '<div class="error"><div class="icon">⚠</div><p>加载概率数据失败</p><p style="color:#6a6a8e;font-size:13px;margin-top:8px">' + err.message + '</p></div>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

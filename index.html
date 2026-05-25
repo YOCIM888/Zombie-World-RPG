@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>丧尸世界 — 末日生存文字游戏</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="public/icon/icon.png">
+</head>
+<body>
+  <div id="game-container">
+    <div id="game-header">
+      <h1>丧尸世界</h1>
+      <p class="subtitle">末日生存文字游戏-YOCIM开发</p>
+    </div>
+    <div id="name-setup">
+      <label for="name-input"></label>
+      <input type="text" id="name-input" placeholder="输入角色名..." maxlength="10">
+      <div class="start-buttons">
+        <button id="new-game-btn">新的游戏</button>
+        <button id="load-game-btn">读取存档</button>
+        <button id="best-record-btn">查看时长</button>
+        <button id="achievement-btn">我的成就</button>
+        <button id="settings-btn">游戏设置</button>
+        <button id="player-tools-btn">玩家工具</button>
+        <button id="about-btn">关于游戏</button>
+      </div>
+    </div>
+    <div id="save-page" style="display:none;">
+      <div class="panel save-panel">
+        <div class="panel-title">存档管理</div>
+        <div id="save-story-area" class="panel"></div>
+        <div id="save-slots-area"></div>
+        <div id="save-options-area"></div>
+        <div class="save-actions">
+          <button id="save-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="best-record-page" style="display:none;">
+      <div class="panel best-record-panel">
+        <div class="panel-title">历史最佳纪录</div>
+        <div id="best-record-content"></div>
+        <div class="save-actions">
+          <button id="best-record-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="achievement-page" style="display:none;">
+      <div class="panel achievement-panel">
+        <div class="panel-title">我的成就</div>
+        <div id="achievement-content"></div>
+        <div class="save-actions">
+          <button id="achievement-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="settings-page" style="display:none;">
+      <div class="panel settings-panel">
+        <div class="panel-title">游戏设置</div>
+        <div id="settings-content">
+          <button id="click-mode-btn" class="settings-toggle-btn"></button>
+          <button id="input-mode-btn" class="settings-toggle-btn"></button>
+          <button id="music-btn" class="settings-toggle-btn"></button>
+        </div>
+        <div class="save-actions" style="flex-direction: column; gap: 10px;">
+          <button id="devtools-trigger-btn" class="settings-toggle-btn off">🔧 开发者工具</button>
+          <button id="settings-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="player-tools-page" style="display:none;">
+      <div class="panel player-tools-panel">
+        <div class="panel-title">玩家工具</div>
+        <div id="player-tools-content">
+          <button id="pt-probability-btn" class="player-tools-btn">📊 概率查询</button>
+          <button id="pt-encyclopedia-btn" class="player-tools-btn">📖 图鉴百科</button>
+        </div>
+        <div class="save-actions">
+          <button id="player-tools-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="about-page" style="display:none;">
+      <div class="panel about-panel">
+        <div class="panel-title">关于游戏</div>
+        <div id="about-content">
+          <div class="about-item"><span class="about-label">主开发者</span><span class="about-value">YOCIM</span></div>
+          <div class="about-item"><span class="about-label">游戏版本</span><span class="about-value">V0.2.2</span></div>
+          <div class="about-item"><span class="about-label">代码贡献</span><span class="about-value">YOCIM，GLM5.1，DeepSeekV4Pro等</span></div>
+          <div class="about-item"><span class="about-label">美术设计</span><span class="about-value">YOCIM</span></div>
+          <div class="about-item"><span class="about-label">全局贡献</span><span class="about-value">Trae/Qoder 多位AI</span></div>
+          <div class="about-divider"></div>
+          <div class="about-item"><span class="about-label">剧情设计</span><span class="about-value">YOCIM</span></div>
+          <div class="about-item"><span class="about-label">游戏策划</span><span class="about-value">YOCIM，LZH</span></div>
+          <div class="about-item">
+            <span class="about-label">音乐贡献</span>
+            <span class="about-value">心中惊恐的音乐 许可:CC-BY 作者:碎碎平安的碎碎 来源:耳聆网 <a href="https://www.ear0.com/sound/43868" target="_blank" rel="noopener">https://www.ear0.com/sound/43868</a></span>
+          </div>
+          <div class="about-item"><span class="about-label">图片贡献</span><span class="about-value">Doubao-Seedream-4.5</span></div>
+          <div class="about-item">
+            <span class="about-label">GitHub</span>
+            <span class="about-value"><a href="https://github.com/YOCIM888/Zombie-World-RPG" target="_blank" rel="noopener">https://github.com/YOCIM888/Zombie-World-RPG</a></span>
+          </div>
+          <div class="about-divider"></div>
+          <div class="about-item"><span class="about-label">联系方式</span><span class="about-value">yocim666@outlook.com</span></div>
+        </div>
+        <div class="save-actions">
+          <button id="about-return-btn">返回</button>
+        </div>
+      </div>
+    </div>
+    <div id="game-content" style="display:none;">
+      <div id="zone-1" class="game-zone">
+        <div id="identity-panel"></div>
+        <div id="stats-panel"></div>
+        <div id="cargo-panel"></div>
+      </div>
+      <div id="zone-2" class="game-zone">
+        <div id="weapon-panel"></div>
+        <div id="inventory-panel"></div>
+      </div>
+      <div id="zone-3" class="game-zone">
+        <div id="story-area" class="panel"></div>
+      </div>
+      <div id="zone-4" class="game-zone">
+        <div id="options-area"></div>
+        <div class="scroll-hint">← 选项区可滑动，请滑动选择行动 →</div>
+        <div id="pagination-area" class="pagination-area" style="display:none;">
+          <button id="prev-page-btn" class="pagination-btn" disabled>⬅️</button>
+          <span id="page-info" class="page-info"></span>
+          <button id="next-page-btn" class="pagination-btn" disabled>➡️</button>
+        </div>
+        <div id="input-area" style="display:none;">
+          <input type="text" id="action-input" placeholder="输入数字选项...">
+          <button id="submit-btn">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+  <script src="tools/devtools-auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+
+# Build output (if any)
+dist/
+build/
+
+# Package lock (commonjs project)
+package-lock.json
